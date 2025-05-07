@@ -18,19 +18,18 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API de Votación")
-                        .description("API para el sistema de votación de comidas, bebidas y postres")
+                        .description("API para el sistema de votación de opciones de comida")
                         .version("1.0")
                         .contact(new Contact()
-                                .name("Equipo de Desarrollo")
+                                .name("API Votación")
                                 .email("contacto@example.com"))
-                        .license(new License().name("Apache 2.0").url("http://springdoc.org")))
+                        .license(new License().name("Apache 2.0")))
                 .addSecurityItem(new SecurityRequirement().addList("JWT"))
                 .components(new Components()
                         .addSecuritySchemes("JWT", new SecurityScheme()
                                 .name("JWT")
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("JWT")
-                                .description("Introduce el token JWT con el prefijo Bearer.")));
+                                .bearerFormat("JWT")));
     }
 }

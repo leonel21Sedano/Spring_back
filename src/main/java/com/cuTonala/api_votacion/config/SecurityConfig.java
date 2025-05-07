@@ -43,16 +43,12 @@ public class SecurityConfig {
         http
             .cors().and()
             .csrf().disable()
+            // Solo para diagnóstico - Permite todo acceso temporalmente
+            .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll()
+            )
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/auth/**", "/api/public/**", "/test-db", "/").permitAll()
-                // Permitir acceso a Swagger
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                // Probar con ambos formatos del rol
-                .requestMatchers("/api/usuarios/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-                .anyRequest().authenticated()
-            )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             
         return http.build();

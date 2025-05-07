@@ -21,12 +21,23 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + correo));
+        System.out.println("DEBUG - loadUserByUsername: " + correo);
+        
+        Usuario usuario;
+        try {
+            usuario = usuarioRepository.findByCorreo(correo)
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + correo));
+        } catch (Exception e) {
+            System.err.println("DEBUG - Error buscando usuario: " + e.getMessage());
+            throw e;
+        }
         
         // Añadir el rol como autoridad
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority(usuario.getRol().toString()));
+        
+        System.out.println("DEBUG - Usuario encontrado: " + usuario.getCorreo());
+        System.out.println("DEBUG - Rol: " + usuario.getRol().toString());
         
         return new User(usuario.getCorreo(), usuario.getContraseña(), authorities);
     }
