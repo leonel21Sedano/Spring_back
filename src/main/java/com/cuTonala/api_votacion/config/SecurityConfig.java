@@ -4,8 +4,10 @@ import com.cuTonala.api_votacion.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -30,17 +32,27 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    // Añadir este método: Define el AuthenticationManager como un bean
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors().and() // Habilitar CORS
+            .cors().and()
             .csrf().disable()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/auth/**", "/api/public/**", "/test-db").permitAll() // Añadido /test-db como ruta pública
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(authorize -> {
+                // Para depuración, imprimir información sobre la solicitud
+                authorize
+                    .requestMatchers("/api/auth/**", "/api/public/**", "/test-db", "/").permitAll()
+                    // Probar con ambos formatos del rol
+                    .requestMatchers("/api/usuarios/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+                    .anyRequest().authenticated();
+            })
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             
         return http.build();
@@ -49,7 +61,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080")); // Puerto donde corre tu frontend
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
@@ -71,5 +83,4 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
-    
 }

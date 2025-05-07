@@ -6,10 +6,16 @@ import com.cuTonala.api_votacion.model.Usuario;
 import com.cuTonala.api_votacion.repository.UsuarioRepository;
 import com.cuTonala.api_votacion.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -24,30 +30,48 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
     public AuthResponse authenticate(AuthRequest request) {
-        // Buscar usuario por correo
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByCorreo(request.getCorreo());
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getCorreo(), 
+                request.getContraseña()
+            )
+        );
         
-        if (usuarioOpt.isEmpty()) {
-            throw new BadCredentialsException("Credenciales inválidas");
+        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+            .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+        
+        // Cargar el UserDetails para obtener las autoridades
+        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
+        
+        // Añadir explícitamente el rol en extraClaims
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("rol", usuario.getRol().toString());
+        
+        // Generar token con las autoridades
+        String jwtToken = jwtService.generateToken(extraClaims, userDetails);
+        
+        // Extraer token y verificar contenido para debugging
+        try {
+            String tokenClaim = jwtService.extractRole(jwtToken);
+            System.out.println("Verificando rol en token generado: " + tokenClaim);
+        } catch (Exception e) {
+            System.err.println("Error al extraer rol del token: " + e.getMessage());
         }
         
-        Usuario usuario = usuarioOpt.get();
+        // Crear y devolver respuesta sin usar el patrón builder
+        AuthResponse response = new AuthResponse();
+        response.setToken(jwtToken);
+        response.setCorreo(usuario.getCorreo());
+        response.setNombre(usuario.getNombre());
+        response.setRol(usuario.getRol().toString());
         
-        // Verificar contraseña
-        if (!passwordEncoder.matches(request.getContraseña(), usuario.getContraseña())) {
-            throw new BadCredentialsException("Credenciales inválidas");
-        }
-        
-        // Generar token JWT
-        String token = generateToken(usuario);
-        
-        // Crear y devolver respuesta
-        return new AuthResponse(token, usuario.getCorreo(), usuario.getNombre(), usuario.getRol().toString());
-    }
-    
-    private String generateToken(Usuario usuario) {
-        // Usar el método existente en JwtService o implementar uno nuevo
-        return jwtService.generateToken(usuario.getCorreo());
+        return response;
     }
 }
