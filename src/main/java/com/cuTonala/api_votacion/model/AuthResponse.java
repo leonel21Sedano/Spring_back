@@ -1,9 +1,23 @@
 package com.cuTonala.api_votacion.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public class AuthResponse {
+    @Schema(description = "Token JWT para autenticación", 
+           example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private String token;
+    
+    @Schema(description = "Correo electrónico del usuario", 
+           example = "estudiante@alumnos.udg.mx")
     private String correo;
+    
+    @Schema(description = "Nombre del usuario", 
+           example = "Juan")
     private String nombre;
+    
+    @Schema(description = "Rol del usuario", 
+           example = "ESTUDIANTE", 
+           allowableValues = {"ADMIN", "ENCARGADO", "ESTUDIANTE"})
     private String rol;
 
     public AuthResponse() {}

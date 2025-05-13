@@ -17,8 +17,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 @RestController
-@RequestMapping("/api/usuarios")  // Cambiado a /api/usuarios para coincidir con el frontend
+@RequestMapping("/api/usuarios")
+@Tag(name = "Usuarios", description = "Operaciones relacionadas con la gestión de usuarios")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UsuarioController {
 
     @Autowired
@@ -27,15 +38,34 @@ public class UsuarioController {
     @Autowired
     private UsuarioService usuarioService;
 
+    @Operation(
+        summary = "Obtener todos los usuarios",
+        description = "Retorna una lista con todos los usuarios registrados en el sistema"
+    )
+    @ApiResponse(responseCode = "200", description = "Lista de usuarios recuperada correctamente")
     @GetMapping
     public List<Usuario> getAllUsuarios() {
-        return usuarioRepository.findAll();
+        return usuarioService.buscarUsuarios(null, null, null, null, null);
     }
 
+    @Operation(summary = "Obtener un usuario por su ID", 
+              description = "Retorna los datos completos de un usuario según su ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Usuario encontrado",
+                   content = @Content(mediaType = "application/json", 
+                   schema = @Schema(implementation = Usuario.class))),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> getUsuarioById(@PathVariable Long id) {
-        Optional<Usuario> usuario = usuarioRepository.findById(id);
-        return usuario.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUsuarioById(@PathVariable Long id) {
+        try {
+            Usuario usuario = usuarioService.obtenerUsuarioPorId(id);
+            return ResponseEntity.ok(usuario);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
     }
 
     @PostMapping("/")
@@ -254,14 +284,22 @@ public class UsuarioController {
         return ResponseEntity.ok(response);
     }
     
+    @Operation(
+        summary = "Buscar usuarios con criterios avanzados",
+        description = "Permite buscar usuarios con múltiples criterios de filtrado"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Búsqueda exitosa"),
+        @ApiResponse(responseCode = "204", description = "No se encontraron resultados")
+    })
     @GetMapping("/busqueda-avanzada")
     public ResponseEntity<?> busquedaAvanzada(
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) String apellidos,
-            @RequestParam(required = false) String correo,
-            @RequestParam(required = false) String codigoEstudiante,
-            @RequestParam(required = false) String rol,
-            @RequestParam(required = false, defaultValue = "true") boolean soloActivos) {
+            @Parameter(description = "Filtrar por nombre") @RequestParam(required = false) String nombre,
+            @Parameter(description = "Filtrar por apellidos") @RequestParam(required = false) String apellidos,
+            @Parameter(description = "Filtrar por correo electrónico") @RequestParam(required = false) String correo,
+            @Parameter(description = "Filtrar por código de estudiante") @RequestParam(required = false) String codigoEstudiante,
+            @Parameter(description = "Filtrar por rol (ADMIN, ENCARGADO, ESTUDIANTE)") @RequestParam(required = false) String rol,
+            @Parameter(description = "Mostrar solo usuarios activos") @RequestParam(required = false, defaultValue = "true") boolean soloActivos) {
         
         List<Usuario> usuarios = usuarioService.buscarUsuariosAvanzado(
                 nombre, apellidos, correo, codigoEstudiante, rol, soloActivos);

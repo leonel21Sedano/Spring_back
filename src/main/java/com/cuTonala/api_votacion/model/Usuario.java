@@ -1,30 +1,37 @@
 package com.cuTonala.api_votacion.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 
+@Schema(description = "Entidad que representa un usuario del sistema")
 @Entity
 public class Usuario {
-
+    @Schema(description = "Identificador único autoincremental", example = "1")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Schema(description = "Nombre del usuario", example = "Juan Carlos")
     private String nombre;
+    
+    @Schema(description = "Apellidos del usuario", example = "Pérez González")
     private String apellidos;
     
+    @Schema(description = "Correo electrónico (único)", example = "juan.perez@alumnos.udg.mx")
     @Column(unique = true)
     private String correo;
     
+    @Schema(description = "Contraseña encriptada (no se muestra en respuestas)", hidden = true)
     private String contraseña;
     
-    // Código de estudiante (solo para estudiantes)
+    @Schema(description = "Código de estudiante (solo para estudiantes)", example = "123456789")
     private String codigoEstudiante;
     
-    // Rol del usuario: ADMIN, ENCARGADO, ESTUDIANTE
+    @Schema(description = "Rol del usuario", example = "ESTUDIANTE")
     @Enumerated(EnumType.STRING)
     private Rol rol;
     
-    // Estado de la cuenta (activa/inactiva)
+    @Schema(description = "Estado de la cuenta (activa/inactiva)", example = "true")
     private boolean activo = true;
 
     // Enum para roles
